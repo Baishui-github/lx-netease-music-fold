@@ -27,11 +27,26 @@ jobs:
       - name: Build Packages
         env:
           DISABLE_SVG: 1
+          NODE_OPTIONS: "--max_old_space_size=3072"
         shell: bash
         run: |
           cd android
           chmod +x ./gradlew
-          ./gradlew assembleRelease --no-daemon -Dorg.gradle.jvmargs="-Xmx3072m -XX:MaxMetaspaceSize=512m"
+          
+          # 限制最大并行线程数为 2，并严格压制内存占用，防止系统杀进程
+          ./gradlew assembleRelease \
+            --no-daemon \
+            --no-parallel \
+            -Dorg.gradle.workers.max=2 \
+            -Dorg.gradle.jvmargs="-Xmx2048m -XX:MaxMetaspaceSize=512m"
+            
+          # 兼容性处理：如果生成了默认名称的 APK，自动重命名以适配后续上传流程
+          cd app/build/outputs/apk/release
+          for file in *.apk; do
+            if [ -f "$file" ] && [[ "$file" != lx-netease-music-mobile* ]]; then
+              mv "$file" "lx-netease-music-mobile-v${PACKAGE_VERSION}-universal.apk"
+            fi
+          done
 
       - name: Get package version
         id: package_version
