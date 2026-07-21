@@ -31,16 +31,23 @@ jobs:
         shell: bash
         run: |
           cd android
+          # 1. 现场生成一个临时测试签名文件
+          keytool -genkey -v -keystore app/test.keystore -alias testalias -storepass testpass -keypass testpass -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Test, O=Test, C=US"
+          
           chmod +x ./gradlew
           
-          # 限制最大并行线程数为 2，并严格压制内存占用，防止系统杀进程
+          # 2. 带上临时签名进行最终落款打包
           ./gradlew assembleRelease \
+            -PMYAPP_UPLOAD_STORE_FILE=test.keystore \
+            -PMYAPP_UPLOAD_KEY_ALIAS=testalias \
+            -PMYAPP_UPLOAD_STORE_PASSWORD=testpass \
+            -PMYAPP_UPLOAD_KEY_PASSWORD=testpass \
             --no-daemon \
             --no-parallel \
             -Dorg.gradle.workers.max=2 \
             -Dorg.gradle.jvmargs="-Xmx2048m -XX:MaxMetaspaceSize=512m"
             
-          # 兼容性处理：如果生成了默认名称的 APK，自动重命名以适配后续上传流程
+          # 3. 兼容性重命名，确保产物顺利输出
           cd app/build/outputs/apk/release
           for file in *.apk; do
             if [ -f "$file" ] && [[ "$file" != lx-netease-music-mobile* ]]; then
