@@ -4,5 +4,5 @@ import { isHorizontalMode } from '../tools'
 export default () => {
   const windowSize = useWindowSize()
 
-  return isHorizontalMode(windowSize.width, windowSize.height)
+  return windowSize.width >= 520 || isHorizontalMode(windowSize.width, windowSize.height)
 }
